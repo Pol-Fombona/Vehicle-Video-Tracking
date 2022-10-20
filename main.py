@@ -15,17 +15,18 @@ WIDTH = 450
 HISTORY = 200
 THS = 16
 SHADOWS = True
-KERNEL_SIZE = 3
+KERNEL_SIZE = 5
+CONTOUR_AREA = 800
 
-
+# Kernel for erode and dilate
 kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
-
+# Background object subtractor
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
 
 
 def detection(frame):
-
+    # Detects objects that are moving and draw their contour
     fgmask = backgroundobject.apply(frame)
 
     _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
@@ -41,7 +42,7 @@ def detection(frame):
     # loop over each contour found in the frame.
     for cnt in contours:
         # We need to be sure about the area of the contours i.e. it should be higher than 400 to reduce the noise.
-        if cv2.contourArea(cnt) > 400:
+        if cv2.contourArea(cnt) > CONTOUR_AREA:
             # Accessing the x, y and height, width of the cars
             x, y, width, height = cv2.boundingRect(cnt)
             # Here we will be drawing the bounding box on the cars
@@ -93,7 +94,7 @@ if __name__ == "__main__":
         cv2.putText(frame, "Queue Size: {}".format(fvs.Q.qsize()),
                     (10, 30), FONT, 0.6, (0, 255, 0), 2)
 
-        fps.update()
+        # fps.update()
 
     # Out of the loop, clean space
     fps.stop()
