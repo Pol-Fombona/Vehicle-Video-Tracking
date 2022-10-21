@@ -67,6 +67,7 @@ def detection(frame):
 
     cv2.waitKey(1)
 
+
 if __name__ == "__main__":
 
     # construct the argument parse and parse the arguments
@@ -89,8 +90,8 @@ if __name__ == "__main__":
         # channels)
         frame = fvs.read()
         frame = imutils.resize(frame, width=WIDTH)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        frame = np.dstack([frame, frame, frame])
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #frame = np.dstack([frame, frame, frame])
 
         detection(frame)
 
