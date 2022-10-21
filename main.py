@@ -11,12 +11,12 @@ import cv2
 
 """  GLOBAL VARIABLES """
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-WIDTH = 450
-HISTORY = 200
-THS = 16
+WIDTH = 480
+HISTORY = 500
+THS = 300
 SHADOWS = True
-KERNEL_SIZE = 5
-CONTOUR_AREA = 800
+KERNEL_SIZE = 3
+CONTOUR_AREA = 2000
 
 # Kernel for erode and dilate
 kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
@@ -32,7 +32,7 @@ def detection(frame):
     _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
 
     fgmask = cv2.erode(fgmask, kernel, iterations=1)
-    fgmask = cv2.dilate(fgmask, kernel, iterations=2)
+    fgmask = cv2.dilate(fgmask, kernel, iterations=5)
 
     contours, _ = cv2.findContours(
         fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
