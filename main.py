@@ -12,11 +12,16 @@ import cv2
 """  GLOBAL VARIABLES """
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 WIDTH = 480
-HISTORY = 500
+HISTORY = 200
 THS = 300
 SHADOWS = True
-KERNEL_SIZE = 3
-CONTOUR_AREA = 2000
+# 
+KERNEL_SIZE = 5
+MIN_AREA = 3000
+# Colors
+BLUE = (255, 0, 0)
+GREEN = (0, 255, 0)
+RED = (0, 0, 255)
 
 # Kernel for erode and dilate
 kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
@@ -26,12 +31,15 @@ backgroundobject = cv2.createBackgroundSubtractorMOG2(
 
 
 def detection(frame):
+
+    fgmask = cv2.GaussianBlur(frame, (3, 3), cv2.BORDER_DEFAULT)
     # Detects objects that are moving and draw their contour
-    fgmask = backgroundobject.apply(frame)
+    fgmask = backgroundobject.apply(fgmask)
 
     _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
 
-    fgmask = cv2.erode(fgmask, kernel, iterations=1)
+    #fgmask = cv2.erode(fgmask, kernel, iterations=1)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
 
     contours, _ = cv2.findContours(
@@ -42,15 +50,15 @@ def detection(frame):
     # loop over each contour found in the frame.
     for cnt in contours:
         # We need to be sure about the area of the contours i.e. it should be higher than 400 to reduce the noise.
-        if cv2.contourArea(cnt) > CONTOUR_AREA:
+        if cv2.contourArea(cnt) > MIN_AREA:
             # Accessing the x, y and height, width of the cars
             x, y, width, height = cv2.boundingRect(cnt)
             # Here we will be drawing the bounding box on the cars
             cv2.rectangle(frameCopy, (x, y),
-                          (x + width, y + height), (0, 0, 255), 2)
+                          (x + width, y + height), RED, 2)
             # Then with the help of putText method we will write the 'Car detected' on every car with a bounding box
             cv2.putText(frameCopy, 'Car Detected', (x, y-10),
-                        FONT, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
+                        FONT, 0.3, GREEN, 1, cv2.LINE_AA)
 
     foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
 
@@ -58,10 +66,7 @@ def detection(frame):
     cv2.imshow('Original Frame, Extracted Foreground and Detected Cars',
                cv2.resize(stacked, None, fx=0.65, fy=0.65))
 
-    k = cv2.waitKey(30) & 0xff
-    if k == 27:
-        return
-
+    cv2.waitKey(1)
 
 if __name__ == "__main__":
 
@@ -73,7 +78,7 @@ if __name__ == "__main__":
 
     # start the file video stream thread and allow the buffer to start to fill
     fvs = FileVideoStream(args["video"]).start()
-    time.sleep(1.0)
+    time.sleep(2.0)
 
     # start the FPS timer
     fps = FPS().start()
@@ -92,7 +97,7 @@ if __name__ == "__main__":
 
         # display the size of the queue on the frame
         cv2.putText(frame, "Queue Size: {}".format(fvs.Q.qsize()),
-                    (10, 30), FONT, 0.6, (0, 255, 0), 2)
+                    (10, 30), FONT, 0.6, GREEN, 2)
 
         # fps.update()
 
