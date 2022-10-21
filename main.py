@@ -13,17 +13,19 @@ import cv2
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 WIDTH = 480
 HISTORY = 500
-THS = 400
+THS = 300
 SHADOWS = True
 # Preprocessing
 KERNEL_SIZE = 7
-MIN_AREA = 3000
+ERODE_KERNEL = 3
+MIN_AREA = 5000
 # Colors
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 
 # Kernel for morphological op.
+erode_kernel = np.ones((ERODE_KERNEL, ERODE_KERNEL), np.uint8)
 kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 # Background object subtractor
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
@@ -34,11 +36,11 @@ def detection(frame):
     # Detects objects that are moving and draw their contour
     fgmask = backgroundobject.apply(frame)
 
-    _, fgmask = cv2.threshold(fgmask, 254, 255, cv2.THRESH_BINARY)
+    _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
 
-    fgmask = cv2.erode(fgmask, kernel, iterations=1)
+    fgmask = cv2.erode(fgmask, erode_kernel, iterations=2)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
-    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
     #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
 
     contours, _ = cv2.findContours(
@@ -49,19 +51,23 @@ def detection(frame):
     # loop over each contour found in the frame.
     for cnt in contours:
         # We need to be sure about the area of the contours i.e. it should be higher than 400 to reduce the noise.
-        if cv2.contourArea(cnt) > MIN_AREA:
+        if cv2.contourArea(cnt) >= MIN_AREA:
             # Accessing the x, y and height, width of the cars
             x, y, width, height = cv2.boundingRect(cnt)
             # Here we will be drawing the bounding box on the cars
             cv2.rectangle(frameCopy, (x, y),
                           (x + width, y + height), RED, 2)
+            # Draw middle point for every bbox
+            middle_point = (x + width//2, y + height//2)
+            cv2.circle(frameCopy, middle_point, radius=5, color=RED, thickness=-1)
+            
             # Then with the help of putText method we will write the 'Car detected' on every car with a bounding box
             cv2.putText(frameCopy, 'Car Detected', (x, y-10),
                         FONT, 0.3, GREEN, 1, cv2.LINE_AA)
 
     foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
 
-    stacked = np.hstack((frame, foregroundPart, frameCopy))
+    stacked = np.hstack((foregroundPart, frameCopy))
     cv2.imshow('Original Frame, Extracted Foreground and Detected Cars',
                cv2.resize(stacked, None, fx=0.65, fy=0.65))
 
@@ -78,7 +84,7 @@ if __name__ == "__main__":
 
     # start the file video stream thread and allow the buffer to start to fill
     fvs = FileVideoStream(args["video"]).start()
-    time.sleep(2.0)
+    time.sleep(1.0)
 
     # start the FPS timer
     fps = FPS().start()
@@ -89,7 +95,7 @@ if __name__ == "__main__":
         # it, and convert it to grayscale (while still retaining 3
         # channels)
         frame = fvs.read()
-        frame = imutils.resize(frame, width=WIDTH)
+        #frame = imutils.resize(frame, width=WIDTH)
         #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #frame = np.dstack([frame, frame, frame])
 
