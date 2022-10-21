@@ -12,18 +12,18 @@ import cv2
 """  GLOBAL VARIABLES """
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 WIDTH = 480
-HISTORY = 200
-THS = 300
+HISTORY = 500
+THS = 400
 SHADOWS = True
-# 
-KERNEL_SIZE = 5
+# Preprocessing
+KERNEL_SIZE = 7
 MIN_AREA = 3000
 # Colors
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
 RED = (0, 0, 255)
 
-# Kernel for erode and dilate
+# Kernel for morphological op.
 kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 # Background object subtractor
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
@@ -31,16 +31,15 @@ backgroundobject = cv2.createBackgroundSubtractorMOG2(
 
 
 def detection(frame):
-
-    fgmask = cv2.GaussianBlur(frame, (3, 3), cv2.BORDER_DEFAULT)
     # Detects objects that are moving and draw their contour
-    fgmask = backgroundobject.apply(fgmask)
+    fgmask = backgroundobject.apply(frame)
 
-    _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
+    _, fgmask = cv2.threshold(fgmask, 254, 255, cv2.THRESH_BINARY)
 
-    #fgmask = cv2.erode(fgmask, kernel, iterations=1)
-    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
+    fgmask = cv2.erode(fgmask, kernel, iterations=1)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
 
     contours, _ = cv2.findContours(
         fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -68,6 +67,7 @@ def detection(frame):
 
     cv2.waitKey(1)
 
+
 if __name__ == "__main__":
 
     # construct the argument parse and parse the arguments
@@ -90,16 +90,10 @@ if __name__ == "__main__":
         # channels)
         frame = fvs.read()
         frame = imutils.resize(frame, width=WIDTH)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        frame = np.dstack([frame, frame, frame])
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #frame = np.dstack([frame, frame, frame])
 
         detection(frame)
-
-        # display the size of the queue on the frame
-        cv2.putText(frame, "Queue Size: {}".format(fvs.Q.qsize()),
-                    (10, 30), FONT, 0.6, GREEN, 2)
-
-        # fps.update()
 
     # Out of the loop, clean space
     fps.stop()
