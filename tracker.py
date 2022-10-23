@@ -2,20 +2,18 @@
 import numpy as np
 
 
-# Global Variables
-MIN_DIST = 40
-
-
 class Tracker():
 
-    def __init__(self, maxDissapeared=20) -> None:
+    def __init__(self, maxDissapeared=20, minDist=40) -> None:
         # 
         self.nextObjectID = 0
         # { objectID: Centroid(x, y) }
         self.objects = dict()
         # { objectID: # frames dissapered }
         self.dissapered = dict()
+
         self.maxDissapeared = maxDissapeared
+        self.minDist = minDist
 
     def register(self, centroid):
         # Register new objects
@@ -77,7 +75,7 @@ class Tracker():
                     continue
 
                 #
-                if Distances[row, col] <= MIN_DIST:
+                if Distances[row, col] <= self.minDist:
                     objectID = objectIDs[row]
                     self.objects[objectID] = inputCentroids[col]
                     self.dissapered[objectID] = 0

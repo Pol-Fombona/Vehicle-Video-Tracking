@@ -20,7 +20,7 @@ SHADOWS = True
 # Preprocessing
 KERNEL_SIZE = 7
 ERODE_KERNEL = 3
-MIN_AREA = 4000
+MIN_AREA = 5000
 # Colors
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -33,7 +33,7 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
 # Tracker object
-tracker = Tracker(maxDissapeared=10)
+tracker = Tracker(maxDissapeared=20, minDist=40)
 
 
 def detection(frame):
@@ -42,9 +42,9 @@ def detection(frame):
 
     _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
 
-    fgmask = cv2.erode(fgmask, erode_kernel, iterations=1)
+    fgmask = cv2.erode(fgmask, erode_kernel, iterations=2)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
-    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
     #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
 
     contours, _ = cv2.findContours(
@@ -74,7 +74,7 @@ def detection(frame):
     for (objectID, centroid) in objects.items():
         text = "ID {}".format(objectID)
         cv2.putText(frameCopy, text, (int(centroid[0] - 10), int(centroid[1] - 10)),
-            FONT, 0.5, RED, 2, cv2.LINE_AA)
+            FONT, 1, RED, 2, cv2.LINE_AA)
         cv2.circle(frameCopy, (int(centroid[0]), int(centroid[1])), radius=5, color=RED, thickness=-1)
 
     foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
@@ -84,11 +84,11 @@ def detection(frame):
                cv2.resize(stacked, None, fx=0.65, fy=0.65))
 
     
+    #cv2.waitKey(0)
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         print(f'\n[*] Key "{chr(key)}" pressed. Exiting... \n')
         exit(0)
-
 
 if __name__ == "__main__":
 
