@@ -2,6 +2,8 @@
 from imutils.video import FileVideoStream
 from imutils.video import FPS
 
+from tracker import Tracker
+
 import numpy as np
 import argparse
 import imutils
@@ -30,6 +32,8 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 # Background object subtractor
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
+# Tracker object
+tracker = Tracker(maxDissapeared=20)
 
 
 def detection(frame):
@@ -47,6 +51,7 @@ def detection(frame):
         fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     frameCopy = frame.copy()
+    centroids = list()
 
     # loop over each contour found in the frame.
     for cnt in contours:
@@ -57,13 +62,24 @@ def detection(frame):
             # Here we will be drawing the bounding box on the cars
             cv2.rectangle(frameCopy, (x, y),
                           (x + width, y + height), RED, 2)
-            # Draw middle point for every bbox
+            # Find middle point for every bbox
             middle_point = (x + width//2, y + height//2)
-            cv2.circle(frameCopy, middle_point, radius=5, color=RED, thickness=-1)
             
+            # Save the centroid found in the frame
+            centroids.append(middle_point)
+
             # Then with the help of putText method we will write the 'Car detected' on every car with a bounding box
             cv2.putText(frameCopy, 'Car Detected', (x, y-10),
                         FONT, 0.3, GREEN, 1, cv2.LINE_AA)
+
+
+    objects = tracker.update(centroids = centroids)
+    # Draw the IDs tracked
+    for (objectID, centroid) in objects.items():
+        text = "ID {}".format(objectID)
+        cv2.putText(frameCopy, text, (int(centroid[0]), int(centroid[1] - 10)),
+            FONT, 2, RED, 2, cv2.LINE_AA)
+        cv2.circle(frameCopy, (int(centroid[0]), int(centroid[1])), radius=5, color=RED, thickness=-1)
 
     foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
 
@@ -71,7 +87,7 @@ def detection(frame):
     cv2.imshow('Original Frame, Extracted Foreground and Detected Cars',
                cv2.resize(stacked, None, fx=0.65, fy=0.65))
 
-    cv2.waitKey(1)
+    cv2.waitKey(0)
 
 
 if __name__ == "__main__":
