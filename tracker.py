@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Global Variables
-MIN_DIST = 20
+MIN_DIST = 40
 
 
 class Tracker():
@@ -76,9 +76,8 @@ class Tracker():
                 if row in usedRows or col in usedCols:
                     continue
 
-                print(f'\n[*] Distance: {Distances[row, col]}')
                 #
-                if Distances[row, col] < MIN_DIST:
+                if Distances[row, col] <= MIN_DIST:
                     objectID = objectIDs[row]
                     self.objects[objectID] = inputCentroids[col]
                     self.dissapered[objectID] = 0

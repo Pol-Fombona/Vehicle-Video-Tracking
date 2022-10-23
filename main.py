@@ -20,7 +20,7 @@ SHADOWS = True
 # Preprocessing
 KERNEL_SIZE = 7
 ERODE_KERNEL = 3
-MIN_AREA = 5000
+MIN_AREA = 4000
 # Colors
 BLUE = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -33,7 +33,7 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
 # Tracker object
-tracker = Tracker(maxDissapeared=20)
+tracker = Tracker(maxDissapeared=10)
 
 
 def detection(frame):
@@ -42,9 +42,9 @@ def detection(frame):
 
     _, fgmask = cv2.threshold(fgmask, 250, 255, cv2.THRESH_BINARY)
 
-    fgmask = cv2.erode(fgmask, erode_kernel, iterations=2)
+    fgmask = cv2.erode(fgmask, erode_kernel, iterations=1)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
-    #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
     #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
 
     contours, _ = cv2.findContours(
@@ -68,17 +68,13 @@ def detection(frame):
             # Save the centroid found in the frame
             centroids.append(middle_point)
 
-            # Then with the help of putText method we will write the 'Car detected' on every car with a bounding box
-            cv2.putText(frameCopy, 'Car Detected', (x, y-10),
-                        FONT, 0.3, GREEN, 1, cv2.LINE_AA)
-
 
     objects = tracker.update(centroids = centroids)
     # Draw the IDs tracked
     for (objectID, centroid) in objects.items():
         text = "ID {}".format(objectID)
-        cv2.putText(frameCopy, text, (int(centroid[0]), int(centroid[1] - 10)),
-            FONT, 2, RED, 2, cv2.LINE_AA)
+        cv2.putText(frameCopy, text, (int(centroid[0] - 10), int(centroid[1] - 10)),
+            FONT, 0.5, RED, 2, cv2.LINE_AA)
         cv2.circle(frameCopy, (int(centroid[0]), int(centroid[1])), radius=5, color=RED, thickness=-1)
 
     foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
@@ -87,7 +83,11 @@ def detection(frame):
     cv2.imshow('Original Frame, Extracted Foreground and Detected Cars',
                cv2.resize(stacked, None, fx=0.65, fy=0.65))
 
-    cv2.waitKey(0)
+    
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord("q"):
+        print(f'\n[*] Key "{chr(key)}" pressed. Exiting... \n')
+        exit(0)
 
 
 if __name__ == "__main__":
@@ -107,20 +107,14 @@ if __name__ == "__main__":
 
     # loop over frames from the video file stream
     while fvs.more():
-        # grab the frame from the threaded video file stream, resize
-        # it, and convert it to grayscale (while still retaining 3
-        # channels)
         frame = fvs.read()
-        #frame = imutils.resize(frame, width=WIDTH)
+        frame = imutils.resize(frame, width=WIDTH)
         #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #frame = np.dstack([frame, frame, frame])
-
         detection(frame)
 
     # Out of the loop, clean space
     fps.stop()
-    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
     # do a bit of cleanup
     cv2.destroyAllWindows()
     fvs.stop()
