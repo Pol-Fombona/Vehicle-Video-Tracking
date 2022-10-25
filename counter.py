@@ -1,17 +1,13 @@
-# Imports
-
-
-# Global Variables
-roi_1 = [(385, 410), (460, 410), (380, 450), (460, 450)]
-roi_2 = [(385, 410), (460, 410), (380, 450), (460, 450)]
-
 
 class Counter():
 
-    def __init__(self) -> None:
+    def __init__(self, roi_1, roi_2):
         
         self.cars_in = set()
         self.cars_out = set()
+
+        self.roi_1 = roi_1
+        self.roi_2 = roi_2
 
         self.num_cars_in = 0
         self.num_cars_out = 0
@@ -21,20 +17,27 @@ class Counter():
 
         xc, yc = centroid[0], centroid[1]
 
-        if xc < roi[1][0] and xc > roi[0][0]:
+        if (xc < roi[1][0] and xc > roi[0][0]) and (yc < roi[2][1] and yc > roi[0][1]):
+            return True
+        
+        return False
 
-            pass
 
     def update(self, centroid, objectID):
         
-        if self.centroid_is_in(roi_1, centroid):
+        if self.centroid_is_in(self.roi_1, centroid) and (objectID not in self.cars_in):
             self.num_cars_in += 1
             self.cars_in.add(objectID)
+            print(f"ObjectID: {objectID} in ROI 1\n")
 
-        elif self.centroid_is_in(roi_1, centroid):
-            self.num_cars_in += 1
-            self.cars_in.add(objectID)
+        elif self.centroid_is_in(self.roi_2, centroid) and (objectID not in self.cars_out):
+            self.num_cars_out += 1
+            self.cars_out.add(objectID)
+            print(f"ObjectID: {objectID} in ROI 2\n")
 
-        return self.num_cars_in, self.num_cars_out
+
+    def get_counter(self):
+        #
+        return (self.num_cars_in, self.num_cars_out)
 
 
