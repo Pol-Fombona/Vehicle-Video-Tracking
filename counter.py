@@ -28,16 +28,13 @@ class Counter():
         if self.centroid_is_in(self.roi_1, centroid) and (objectID not in self.cars_in):
             self.num_cars_in += 1
             self.cars_in.add(objectID)
-            print(f"ObjectID: {objectID} in ROI 1\n")
 
         elif self.centroid_is_in(self.roi_2, centroid) and (objectID not in self.cars_out):
             self.num_cars_out += 1
             self.cars_out.add(objectID)
-            print(f"ObjectID: {objectID} in ROI 2\n")
 
 
     def get_counter(self):
-        #
         return (self.num_cars_in, self.num_cars_out)
 
 

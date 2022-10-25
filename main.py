@@ -1,4 +1,4 @@
-# import the necessary packages
+# Import the necessary packages
 from imutils.video import FileVideoStream
 from imutils.video import FPS
 
@@ -33,14 +33,14 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
 
-# Tracker object
-tracker = Tracker(maxDissapeared=20, minDist=40)
-
-roi_1 = [(130, 700), (250, 700), (130, 750), (250, 750)]
+roi_1 = [(130, 700), (250, 700), (130, 800), (250, 800)]
 roi_2 = [(300, 550), (400, 550), (300, 600), (400, 600)]
 
 # Counter object
 counter = Counter(roi_1, roi_2)
+
+# Tracker object
+tracker = Tracker(maxDissapeared=20, minDist=40)
 
 
 def track(centroids, frame):
@@ -111,24 +111,26 @@ if __name__ == "__main__":
 
     # loop over frames from the video file stream
     while fvs.more():
+
         frame = fvs.read()
+        if frame is not None:
+            centroids, frame = detection(frame)
+            cars_in, cars_out = track(centroids, frame)
 
-        centroids, frame = detection(frame)
-        cars_in, cars_out = track(centroids, frame)
+            cv2.putText(frame, f"CARS IN: {cars_in}", (20, 40), FONT, 1.2, RED, 2, cv2.LINE_AA)
+            cv2.putText(frame, f"CARS OUT: {cars_out}", (20, 80), FONT, 1.2, RED, 2, cv2.LINE_AA)
+            cv2.imshow('Detected Cars', frame)
 
-        cv2.putText(frame, f"CARS IN: {cars_in}", (20, 40), FONT, 1.2, RED, 2, cv2.LINE_AA)
-        cv2.putText(frame, f"CARS OUT: {cars_out}", (20, 80), FONT, 1.2, RED, 2, cv2.LINE_AA)
-        cv2.imshow('Detected Cars', frame)
-
-        #cv2.waitKey(0)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            print(f'\n[*] Key "{chr(key)}" pressed. Exiting... \n')
-            exit(0)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                print(f'\n[*] Key "{chr(key)}" pressed. Exiting... \n')
+                exit(0)
 
 
+    print(f"Video ended. \nFinising the program...")
+    
     # Out of the loop, clean space
-    fps.stop()
     # do a bit of cleanup
     cv2.destroyAllWindows()
+    fps.stop()
     fvs.stop()
