@@ -33,12 +33,13 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
 
-roi_1 = [(130, 700), (250, 700), (130, 800), (250, 800)]
-roi_2 = [(300, 550), (400, 550), (300, 600), (400, 600)]
+
+roi_1 = [(120, 800), (240, 800), (120, 950), (240, 950)]
+roi_2 = [(280, 800), (400, 800), (280, 950), (400, 950)]
+
 
 # Counter object
 counter = Counter(roi_1, roi_2)
-
 # Tracker object
 tracker = Tracker(maxDissapeared=20, minDist=40)
 
@@ -87,8 +88,10 @@ def detection(frame):
             centroids.append(middle_point)
     
     # Draw ROIs
-    cv2.rectangle(frameCopy, roi_1[0], roi_1[3], GREEN, 2)
-    cv2.rectangle(frameCopy, roi_2[0], roi_2[3], BLUE, 2)
+    fCopy = frameCopy.copy()
+    cv2.rectangle(fCopy, roi_1[0], roi_1[3], GREEN, -1)
+    cv2.rectangle(fCopy, roi_2[0], roi_2[3], BLUE, -1)
+    frameCopy = cv2.addWeighted(fCopy, 0.2, frameCopy, 1 - 0.2, 0)
 
     return centroids, frameCopy
 
@@ -108,12 +111,15 @@ if __name__ == "__main__":
 
     # start the FPS timer
     fps = FPS().start()
-
+    number_frames = 0
+    start_time = time.time()
     # loop over frames from the video file stream
     while fvs.more():
 
         frame = fvs.read()
         if frame is not None:
+            number_frames += 1
+
             centroids, frame = detection(frame)
             cars_in, cars_out = track(centroids, frame)
 
@@ -127,8 +133,13 @@ if __name__ == "__main__":
                 exit(0)
 
 
-    print(f"Video ended. \nFinising the program...")
-    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"\n[*] Elapsed time: {elapsed_time:2f} \
+        Frames per second: {number_frames//int(elapsed_time)}")
+
+    print(f"\n[*] Total Cars IN: {cars_in} \tTotal Cars OUT: {cars_out}\
+    \n[*] Video ended. \tFinising the program...\n")
     # Out of the loop, clean space
     # do a bit of cleanup
     cv2.destroyAllWindows()
