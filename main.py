@@ -1,22 +1,22 @@
-# import the necessary packages
+# Import the necessary packages
 from imutils.video import FileVideoStream
 from imutils.video import FPS
 
 from tracker import Tracker
+from counter import Counter
 
 import numpy as np
 import argparse
-import imutils
 import time
 import cv2
 
 
 """  GLOBAL VARIABLES """
 FONT = cv2.FONT_HERSHEY_SIMPLEX
-WIDTH = 480
 HISTORY = 500
 THS = 300
 SHADOWS = True
+
 # Preprocessing
 KERNEL_SIZE = 7
 ERODE_KERNEL = 3
@@ -32,8 +32,30 @@ kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE), np.uint8)
 # Background object subtractor
 backgroundobject = cv2.createBackgroundSubtractorMOG2(
     history=HISTORY, varThreshold=THS, detectShadows=SHADOWS)
+
+
+roi_1 = [(120, 800), (240, 800), (120, 950), (240, 950)]
+roi_2 = [(280, 800), (400, 800), (280, 950), (400, 950)]
+
+
+# Counter object
+counter = Counter(roi_1, roi_2)
 # Tracker object
-tracker = Tracker(maxDissapeared=20)
+tracker = Tracker(maxDissapeared=20, minDist=40)
+
+
+def track(centroids, frame):
+    objects = tracker.update(centroids = centroids)
+    # Draw the IDs tracked
+    for (objectID, centroid) in objects.items():
+        text = "ID {}".format(objectID)
+        cv2.putText(frame, text, (int(centroid[0]), int(centroid[1] - 20)),
+            FONT, 1, RED, 2, cv2.LINE_AA)
+        cv2.circle(frame, (int(centroid[0]), int(centroid[1])), radius=5, color=RED, thickness=-1)
+        counter.update(centroid, objectID)
+
+    (cars_in, cars_out) = counter.get_counter()
+    return cars_in, cars_out
 
 
 def detection(frame):
@@ -44,8 +66,7 @@ def detection(frame):
 
     fgmask = cv2.erode(fgmask, erode_kernel, iterations=2)
     fgmask = cv2.dilate(fgmask, kernel, iterations=5)
-    #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=1)
-    #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel, iterations=1)
+    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
     contours, _ = cv2.findContours(
         fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -60,34 +81,20 @@ def detection(frame):
             # Accessing the x, y and height, width of the cars
             x, y, width, height = cv2.boundingRect(cnt)
             # Here we will be drawing the bounding box on the cars
-            cv2.rectangle(frameCopy, (x, y),
-                          (x + width, y + height), RED, 2)
+            cv2.rectangle(frameCopy, (x, y), (x + width, y + height), RED, 2)
             # Find middle point for every bbox
             middle_point = (x + width//2, y + height//2)
-            
             # Save the centroid found in the frame
             centroids.append(middle_point)
+    
+    # Draw ROIs
+    fCopy = frameCopy.copy()
+    cv2.rectangle(fCopy, roi_1[0], roi_1[3], GREEN, -1)
+    cv2.rectangle(fCopy, roi_2[0], roi_2[3], BLUE, -1)
+    frameCopy = cv2.addWeighted(fCopy, 0.2, frameCopy, 1 - 0.2, 0)
 
-            # Then with the help of putText method we will write the 'Car detected' on every car with a bounding box
-            cv2.putText(frameCopy, 'Car Detected', (x, y-10),
-                        FONT, 0.3, GREEN, 1, cv2.LINE_AA)
+    return centroids, frameCopy
 
-
-    objects = tracker.update(centroids = centroids)
-    # Draw the IDs tracked
-    for (objectID, centroid) in objects.items():
-        text = "ID {}".format(objectID)
-        cv2.putText(frameCopy, text, (int(centroid[0]), int(centroid[1] - 10)),
-            FONT, 2, RED, 2, cv2.LINE_AA)
-        cv2.circle(frameCopy, (int(centroid[0]), int(centroid[1])), radius=5, color=RED, thickness=-1)
-
-    foregroundPart = cv2.bitwise_and(frame, frame, mask=fgmask)
-
-    stacked = np.hstack((foregroundPart, frameCopy))
-    cv2.imshow('Original Frame, Extracted Foreground and Detected Cars',
-               cv2.resize(stacked, None, fx=0.65, fy=0.65))
-
-    cv2.waitKey(0)
 
 
 if __name__ == "__main__":
@@ -104,23 +111,37 @@ if __name__ == "__main__":
 
     # start the FPS timer
     fps = FPS().start()
-
+    number_frames = 0
+    start_time = time.time()
     # loop over frames from the video file stream
     while fvs.more():
-        # grab the frame from the threaded video file stream, resize
-        # it, and convert it to grayscale (while still retaining 3
-        # channels)
+
         frame = fvs.read()
-        #frame = imutils.resize(frame, width=WIDTH)
-        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #frame = np.dstack([frame, frame, frame])
+        if frame is not None:
+            number_frames += 1
 
-        detection(frame)
+            centroids, frame = detection(frame)
+            cars_in, cars_out = track(centroids, frame)
 
+            cv2.putText(frame, f"CARS IN: {cars_in}", (20, 40), FONT, 1.2, RED, 2, cv2.LINE_AA)
+            cv2.putText(frame, f"CARS OUT: {cars_out}", (20, 80), FONT, 1.2, RED, 2, cv2.LINE_AA)
+            cv2.imshow('Detected Cars', frame)
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                print(f'\n[*] Key "{chr(key)}" pressed. Exiting... \n')
+                exit(0)
+
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"\n[*] Elapsed time: {elapsed_time:2f} \
+        Frames per second: {number_frames//int(elapsed_time)}")
+
+    print(f"\n[*] Total Cars IN: {cars_in} \tTotal Cars OUT: {cars_out}\
+    \n[*] Video ended. \tFinising the program...\n")
     # Out of the loop, clean space
-    fps.stop()
-    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
     # do a bit of cleanup
     cv2.destroyAllWindows()
+    fps.stop()
     fvs.stop()
