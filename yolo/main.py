@@ -32,13 +32,13 @@ roi_in = [(90, 750), (240, 750), (90, 900), (240, 900)]
 roi_out = [(275, 750), (425, 750), (275, 900), (425, 900)]
 
 
-def main(classes=None):
+def main(args):
 
     conf_thres=0.5 
     iou_thres=0.5   
 
-    source = 'C:/Users/Admin/Desktop/4t/PSIV/Vehicle-Video-Tracking/yolo/videos/output7_4x.mp4'
-    video = source[source.rindex("/")+1:]
+    classes = args["classes"]
+    source = args["video"]
 
     yolo_weights = ROOT / "weights/yolov5s.pt"
 
@@ -124,7 +124,7 @@ def main(classes=None):
             cv2.waitKey(1) 
 
     time_final = time.time()
-    print("\nSource:", video)
+    print("\nSource:", source)
     print("Time Elapsed:", time_final - start_time, "seconds.")
     show_results()
 
@@ -169,10 +169,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--classes', nargs='+', type=int, default=[1, 2, 3, 5, 7])
-
-    opt = parser.parse_args()
-
+    parser.add_argument("-v", "--video", required=True, help="Path to input video file")
+    opt = vars(parser.parse_args())
     check_requirements(requirements=ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))
-    main(**vars(opt))
+    main(opt)
 
 
