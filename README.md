@@ -1,5 +1,12 @@
 # Vehicle-Video-Tracking
 
-Medium article about object tracking methods [LINK](https://medium.com/augmented-startups/top-5-object-tracking-methods-92f1643f8435)
+To execute classic method execute the "main.py" file in the folder "classic" with the parameter:
+  - "--v" with the path of the video
 
-Simple object tracking with OpenCV [LINK](https://pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/)
+To execute YOLO method execute the "main.py" file in the folder "YOLO" with the parameter:
+  - "--v" with the path of the video
+  - [Optional] "--classes" with the sequence of classes (numbers) wanted to classify.
+                By default detects bycicles, cars, motorcycles, bus and trucks.
+
+
+List with all the possibles classes to detect in YOLO: https://tech.amikelive.com/node-718/what-object-categories-labels-are-in-coco-dataset/. Remember class in the file start with 0 not 1!
